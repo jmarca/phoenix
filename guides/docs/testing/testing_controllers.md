@@ -185,8 +185,8 @@ Let's take a look at what's going on here. First, some attributes for
 two valid users are defined, and then a [`setup/1`
 block](https://hexdocs.pm/ex_unit/1.5.1/ExUnit.Callbacks.html#content)
 is used to create those users before each test.  The `setup/1` block also
-creates a `conn` variable to be used in each test.  The `conn`,
-`user1`, and `user2` are then returned as a map from the `setup` block, and so are
+creates a `conn` variable to be used in each test.  Then `conn`,
+`user1`, and `user2` are returned as a map from the `setup` block, and are
 merged into the context that is passed to each test.
 
 The index test then hooks into the context to extract the contents of
