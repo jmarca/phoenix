@@ -113,7 +113,7 @@ defmodule HelloWeb.UserControllerTest do
   end
 
   describe "show/2" do
-    test "Responds with a newly created user if the user is found"
+    test "Responds with user info if the user is found"
     test "Responds with a message indicating user not found"
   end
 
