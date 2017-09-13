@@ -348,7 +348,11 @@ test "Responds with user info if the user is found", %{conn: conn, user1: user} 
 end
 ```
 
-This is very similar to our `index/2` test, except `show/2` requires a user id, and our data is a single JSON object instead of an array.
+This is very similar to our `index/2` test, except `show/2` requires a
+user id, and our data is a single JSON object instead of an
+array. Notice that because we only need one user for this test, we're
+only grabbing `user1:` from the context, and mapping it to `user`.
+
 
 When we run our test tells us we need a `HelloWeb.UserController.show/2` action.
 
