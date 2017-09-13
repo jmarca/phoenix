@@ -46,7 +46,7 @@ Guide](contexts.html#content).
 $ mix phx.gen.context Accounts User users name:string email:string:unique password:string
 
 * creating lib/hello/accounts/user.ex
-* creating priv/repo/migrations/20170913142842_create_users.exs
+* creating priv/repo/migrations/20170913155721_create_users.exs
 * creating lib/hello/accounts/accounts.ex
 * injecting lib/hello/accounts/accounts.ex
 * creating test/hello/accounts/accounts_test.exs
