@@ -197,8 +197,8 @@ in turn piped into `json_response/2` along with the expected HTTP status code. T
 
 Our expected data is a JSON response with a top level key of `"data"`
 containing an array of users that have `"name"` and `"email"`
-properties that should match those of the `userN` objects loaded into
-the context by the `setup/1` function.
+properties that should match those of the `userN` objects created by
+the `setup/1` function.
 
 When we run the test we get an error that we have no `user_path` function.
 
