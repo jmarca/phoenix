@@ -64,6 +64,8 @@ this example.  Just run the migration:
 
 ```console
 $ mix ecto.migrate
+Compiling 2 files (.ex)
+Generated hello app
 [info] == Running Hello.Repo.Migrations.CreateUsers.change/0 forward
 [info] create table users
 [info] create index users_email_index
