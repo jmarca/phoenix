@@ -202,11 +202,15 @@ the `setup/1` function.
 
 When we run the test we get an error that we have no `user_path` function.
 
-In our router, we'll add a resource for `User` in our API pipe:
+In our router, we'll uncomment the `api` scope at the bottom of the
+auto-generated file, and then add a resource for `User` in the API.
+Because we aren't going to be generating forms to create and update
+users, we add the `except: [:new, :edit]` to skip those endpoints.
+
 
 ```elixir
-defmodule Hello.Router do
-  use Hello, :router
+defmodule HelloWeb.Router do
+  use HelloWeb, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -218,11 +222,39 @@ defmodule Hello.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-    resources "/users", Hello.UserController
   end
 
-  ...
+  scope "/", HelloWeb do
+    pipe_through :browser # Use the default browser stack
+
+    get "/", PageController, :index
+  end
+
+  # Other scopes may use custom stacks.
+  scope "/api", HelloWeb do
+    pipe_through :api
+    resources "/users", UserController, except: [:new, :edit]
+  end
+end
 ```
+
+Before running the test again, check out our new paths by running `mix
+phx.routes`.  You should see six new "/api" routes in addition to the default
+'/' route:
+
+```console
+$ mix phx.routes
+Compiling 6 files (.ex)
+page_path  GET     /               HelloWeb.PageController :index
+user_path  GET     /api/users      HelloWeb.UserController :index
+user_path  GET     /api/users/:id  HelloWeb.UserController :show
+user_path  POST    /api/users      HelloWeb.UserController :create
+user_path  PATCH   /api/users/:id  HelloWeb.UserController :update
+           PUT     /api/users/:id  HelloWeb.UserController :update
+user_path  DELETE  /api/users/:id  HelloWeb.UserController :delete
+```
+
+
 
 We should get a new error now. Running the test informs us we don't have a `UserController`. Let's add it, along with the `index/2` action we're testing. Our test description has us returning all users:
 
