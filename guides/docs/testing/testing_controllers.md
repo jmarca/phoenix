@@ -72,6 +72,18 @@ Generated hello app
 [info] == Migrated in 0.0s
 ```
 
+As a final check before we start developing, we run `mix test` and
+make sure that all is well.
+
+```console
+$ mix test
+```
+
+All of the tests should pass, but sometimes the database isn't
+specified properly in `config/test.exs`, or some other issue crops
+up.  It is best to correct these issues now, *before* we complicate
+things with deliberately breaking tests!
+
 ### Test driving
 
 What we are going for is a controller with the standard CRUD actions. We'll start with our test since we're TDDing this. Create a `user_controller_test.exs` file in `test/hello_web/controllers`
