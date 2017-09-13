@@ -384,23 +384,33 @@ properly handling the possibility of a thrown error here. When we TDD we only wa
 Running the test tells us we need a `render/2` function that can pattern match on `"show.json"`:
 
 ```elixir
-defmodule Hello.UserView do
-  use Hello, :view
+defmodule HelloWeb.UserView do
+  use HelloWeb, :view
 
-  def render("index.json", %{users: users}) do
-    %{data: render_many(users, Hello.UserView, "user.json")}
+  def render("index.json", %{data: users}) do
+    %{data:
+      render_many( users, HelloWeb.UserView, "user.json", as: :data)
+      }
   end
 
-  def render("show.json", %{user: user}) do
-    %{data: render_one(user, Hello.UserView, "user.json")}
+  def render("show.json", %{data: user}) do
+    %{data:
+      render_one( user, HelloWeb.UserView, "user.json", as: :data)
+      }
   end
 
-  def render("user.json", %{user: user}) do
-    %{name: user.name, email: user.email}
+  def render("user.json", %{data: user}) do
+    %{
+      name: user.name,
+      email: user.email
+      # skipping password, inserted_at, and updated_at
+    }
   end
-
 end
 ```
+Notice the "show.json" rendering path uses `render_one/4` instead of
+`render_many/4' because it is only rendering a single user, not a list.
+
 
 When we run the test again, it passes.
 
