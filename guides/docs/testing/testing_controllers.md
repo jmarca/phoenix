@@ -297,6 +297,15 @@ defmodule HelloWeb.UserView do
 end
 ```
 
+The view module for the index uses the `render_many/4` function.
+According to the
+[documentation](https://hexdocs.pm/phoenix/Phoenix.View.html#render_many/4),
+using `render_many/4` is "roughly equivalent" to using `Enum.map/2`,
+and in fact `Enum.map` is called under the hood.  The main difference
+is that by using `render_many/4` instead of directly calling
+`Enum.map/2` is that the former benefits from library-quality error
+checking, properly handling missing values, and so on.
+
 And with that, our test passes when we run it.
 
 We'll also cover the `show/2` action here so we can see how to handle an error case.
