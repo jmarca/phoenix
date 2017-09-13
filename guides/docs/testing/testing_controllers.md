@@ -256,17 +256,18 @@ user_path  DELETE  /api/users/:id  HelloWeb.UserController :delete
 
 
 
-We should get a new error now. Running the test informs us we don't have a `UserController`. Let's add it, along with the `index/2` action we're testing. Our test description has us returning all users:
+We should get a new error now. Running the test informs us we don't have a `HelloWeb.UserController`. Let's add it, along with the `index/2` action we're testing. Our test description has us returning all users:
 
 ```elixir
-defmodule Hello.UserController do
-  use Hello, :controller
+# lib/hello_web/controllers/user_controller.ex
 
-  alias Hello{Accounts.User, Repo}
+defmodule HelloWeb.UserController do
+  use HelloWeb, :controller
+  alias Hello.Accounts
 
   def index(conn, _params) do
-    users = Repo.all(User)
-    render conn, "index.json", users: users
+    users = Accounts.list_users()
+    render(conn, "index.json", data: users)
   end
 
 end
