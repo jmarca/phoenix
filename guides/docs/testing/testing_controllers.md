@@ -308,7 +308,7 @@ checking, properly handling missing values, and so on.
 
 And with that, our test passes when we run it.
 
-### Time for the Show
+### Time for the show
 
 We'll also cover the `show/2` action here so we can see how to handle an error case.
 
@@ -414,7 +414,7 @@ Notice the "show.json" rendering path uses `render_one/4` instead of
 
 When we run the test again, it passes.
 
-### No Show
+### No show
 
 The last item we'll cover is the case where we don't find a user in `show/2`.
 
@@ -517,12 +517,13 @@ TDD development, we can add additional error messages.
 
 With those implemented, our tests pass.
 
-### Two down, Six to go
+### Two down, six (or more) to go
 
 The rest of the controller is left for you to implement as practice. To
 help you on your way, below is a more fully fleshed out test file.  Of
 course there are lots of edge cases and error conditions that are *not*
-covered, but it should get you started.
+covered, but it should get you started.  Then maybe use the Phoenix
+JSON generator and see what tests are automatically generated for you.
 
 ```
 # test/hello_web/controllers/user_controller_test.exs
