@@ -273,20 +273,27 @@ defmodule HelloWeb.UserController do
 end
 ```
 
-When we run the test again, our failing test tells us we have no view. Let's add it. Our test specifies a JSON format with a top key of `"data"`, containing an array of users with attributes `"name"` and `"email"`.
+When we run the test again, our failing test tells us module `HelloWeb.UserView` is not available. Let's add it. Our test specifies a JSON format with a top key of `"data"`, containing an array of users with attributes `"name"` and `"email"`.
 
 ```elixir
-defmodule Hello.UserView do
-  use Hello, :view
+# lib/hello_web/views/user_view.ex
 
-  def render("index.json", %{users: users}) do
-    %{data: render_many(users, Hello.UserView, "user.json")}
+defmodule HelloWeb.UserView do
+  use HelloWeb, :view
+
+  def render("index.json", %{data: users}) do
+    %{data:
+      render_many( users, HelloWeb.UserView, "user.json", as: :data)
+      }
   end
 
-  def render("user.json", %{user: user}) do
-    %{name: user.name, email: user.email}
+  def render("user.json", %{data: user}) do
+    %{
+      name: user.name,
+      email: user.email
+      # skipping password, inserted_at, and updated_at
+    }
   end
-
 end
 ```
 
