@@ -19,13 +19,13 @@ give us.
 
 ### Set up
 
-First create a blank project by running
+If you haven't already done so, first create a blank project by running
 
 ```console
-$ mix phx.new hello_phoenix -y
+$ mix phx.new hello -y
 ```
 
-Change into the newly-created `hello_phoenix` directory, configure
+Change into the newly-created `hello` directory, configure
 your database in `config/dev.exs` and then run
 
 ```console
@@ -45,12 +45,12 @@ Guide](contexts.html#content).
 ```console
 $ mix phx.gen.context Accounts User users name:string email:string:unique password:string
 
-* creating lib/hello_phoenix/accounts/user.ex
+* creating lib/hello/accounts/user.ex
 * creating priv/repo/migrations/20170913142842_create_users.exs
-* creating lib/hello_phoenix/accounts/accounts.ex
-* injecting lib/hello_phoenix/accounts/accounts.ex
-* creating test/hello_phoenix/accounts/accounts_test.exs
-* injecting test/hello_phoenix/accounts/accounts_test.exs
+* creating lib/hello/accounts/accounts.ex
+* injecting lib/hello/accounts/accounts.ex
+* creating test/hello/accounts/accounts_test.exs
+* injecting test/hello/accounts/accounts_test.exs
 
 Remember to update your repository by running migrations:
 
@@ -64,7 +64,7 @@ this example.  Just run the migration:
 
 ```console
 $ mix ecto.migrate
-[info] == Running HelloPhoenix.Repo.Migrations.CreateUsers.change/0 forward
+[info] == Running Hello.Repo.Migrations.CreateUsers.change/0 forward
 [info] create table users
 [info] create index users_email_index
 [info] == Migrated in 0.0s
@@ -72,13 +72,13 @@ $ mix ecto.migrate
 
 ### Test driving
 
-What we are going for is a controller with the standard CRUD actions. We'll start with our test since we're TDDing this. Create a `user_controller_test.exs` file in `test/hello_phoenix_web/controllers`
+What we are going for is a controller with the standard CRUD actions. We'll start with our test since we're TDDing this. Create a `user_controller_test.exs` file in `test/hello_web/controllers`
 
 ```elixir
-# test/hello_phoenix_web/controllers/user_controller_test.exs
+# test/hello_web/controllers/user_controller_test.exs
 
-defmodule HelloPhoenixWeb.UserControllerTest do
-  use HelloPhoenixWeb.ConnCase
+defmodule HelloWeb.UserControllerTest do
+  use HelloWeb.ConnCase
 
 end
 ```
@@ -86,10 +86,10 @@ end
 There are many ways to approach TDD. Here, we will think about each action we want to perform, and handle the "happy path" where things go as planned, and the error case where something goes wrong, if applicable.
 
 ```elixir
-# test/hello_phoenix_web/controllers/user_controller_test.exs
+# test/hello_web/controllers/user_controller_test.exs
 
-defmodule HelloPhoenixWeb.UserControllerTest do
-  use HelloPhoenixWeb.ConnCase
+defmodule HelloWeb.UserControllerTest do
+  use HelloWeb.ConnCase
 
   test "index/2 responds with all Users"
 
@@ -120,50 +120,79 @@ Create, show and update have more typical ways to fail because they need a way t
 Let's run the test:
 
 ```console
-$ mix test test/hello_phoenix_web/controllers/user_controller_test.exs
+$ mix test test/hello_web/controllers/user_controller_test.exs
 ```
 
 We get 8 failures that say "Not implemented" which is good. Our tests don't have blocks yet.
 
+### The first test
+
 Let's add our first test. We'll start with `index/2`.
 
 ```elixir
-defmodule HelloPhoenix.UserControllerTest do
-  use HelloPhoenix.ConnCase, async: true
+# test/hello_web/controllers/user_controller_test.exs
 
-  alias HelloPhoenix{Repo, Accounts.User}
+defmodule HelloWeb.UserControllerTest do
+  use HelloWeb.ConnCase
 
-  test "index/2 responds with all Users" do
-    users = [ User.changeset(%User{}, %{name: "John", email: "john@example.com"}),
-              User.changeset(%User{}, %{name: "Jane", email: "jane@example.com"}) ]
+  alias Hello.Accounts
 
-    Enum.each(users, &Repo.insert!(&1))
+  @user1_attrs %{email: "grobblefruit@example.org", name: "John", password: "surf and skate"}
+  @user2_attrs %{email: "varibiggles@example.org",  name: "Jane",  password: "coffee and beer"}
 
-    response = build_conn()
-    |> get(user_path(build_conn(), :index))
+  # setup creates users for all tests, and generates the conn
+  setup do
+    {:ok, user1} = Accounts.create_user(@user1_attrs)
+    {:ok, user2} = Accounts.create_user(@user2_attrs)
+    conn = build_conn()
+    # results are loaded into the context passed to each test
+    {:ok, conn: conn, user1: user1, user2: user2}
+  end
+
+  test "index/2 responds with all Users", %{conn: conn, user1: user1, user2: user2} do
+
+    response = conn
+    |> get(user_path(conn, :index))
     |> json_response(200)
+
 
     expected = %{
       "data" => [
-        %{ "name" => "John", "email" => "john@example.com" },
-        %{ "name" => "Jane", "email" => "jane@example.com" }
+        %{ "name" => user1.name, "email" => user1.email },
+        %{ "name" => user2.name, "email" => user2.email }
       ]
     }
 
     assert response == expected
   end
 ```
-Let's take a look at what's going on here. We build our users, and use the `get` function to make a `GET` request to our `UserController` index action, which is piped into `json_response/2` along with the expected HTTP status code. This will return the JSON from the response body, when everything is wired up properly. We represent the JSON we want the controller action to return with the variable `expected`, and assert that the `response` and `expected` are the same.
 
-Our expected data is a JSON response with a top level key of `"data"` containing an array of users that have `"name"` and `"email"` properties.
+Let's take a look at what's going on here. First, some attributes for
+two valid users are defined, and then a [`setup/1`
+block](https://hexdocs.pm/ex_unit/1.5.1/ExUnit.Callbacks.html#content)
+is used to create those users before each test.  The `setup/1` block also
+creates a `conn` variable to be used in each test.  The `conn`,
+`user1`, and `user2` are then returned as a map from the `setup` block, and so are
+merged into the context that is passed to each test.
+
+The index test then hooks into the context to extract the contents of
+the `conn:`, `user1:`, and `user2` keys.  The `conn` is piped to a `get` function
+to make a `GET` request to our `UserController` index action, which is
+in turn piped into `json_response/2` along with the expected HTTP status code. This will return the JSON from the response body, when everything is wired up properly. We represent the JSON we want the controller action to return with the variable `expected`, and assert that the `response` and `expected` are the same.
+
+
+Our expected data is a JSON response with a top level key of `"data"`
+containing an array of users that have `"name"` and `"email"`
+properties that should match those of the `userN` objects loaded into
+the context by the `setup/1` function.
 
 When we run the test we get an error that we have no `user_path` function.
 
 In our router, we'll add a resource for `User` in our API pipe:
 
 ```elixir
-defmodule HelloPhoenix.Router do
-  use HelloPhoenix, :router
+defmodule Hello.Router do
+  use Hello, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -175,7 +204,7 @@ defmodule HelloPhoenix.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-    resources "/users", HelloPhoenix.UserController
+    resources "/users", Hello.UserController
   end
 
   ...
@@ -184,10 +213,10 @@ defmodule HelloPhoenix.Router do
 We should get a new error now. Running the test informs us we don't have a `UserController`. Let's add it, along with the `index/2` action we're testing. Our test description has us returning all users:
 
 ```elixir
-defmodule HelloPhoenix.UserController do
-  use HelloPhoenix, :controller
+defmodule Hello.UserController do
+  use Hello, :controller
 
-  alias HelloPhoenix{Accounts.User, Repo}
+  alias Hello{Accounts.User, Repo}
 
   def index(conn, _params) do
     users = Repo.all(User)
@@ -200,11 +229,11 @@ end
 When we run the test again, our failing test tells us we have no view. Let's add it. Our test specifies a JSON format with a top key of `"data"`, containing an array of users with attributes `"name"` and `"email"`.
 
 ```elixir
-defmodule HelloPhoenix.UserView do
-  use HelloPhoenix, :view
+defmodule Hello.UserView do
+  use Hello, :view
 
   def render("index.json", %{users: users}) do
-    %{data: render_many(users, HelloPhoenix.UserView, "user.json")}
+    %{data: render_many(users, Hello.UserView, "user.json")}
   end
 
   def render("user.json", %{user: user}) do
@@ -230,7 +259,7 @@ Our show tests currently look like this:
 Run this test only by running the following command: (if your show tests don't start on line 32, change the line number accordingly)
 
 ```console
-$ mix test test/hello_phoenix_web/controllers/user_controller_test.exs:32
+$ mix test test/hello_web/controllers/user_controller_test.exs:32
 ```
 
 Our first `show/2` test result is, as expected, not implemented.
@@ -256,10 +285,10 @@ This is very similar to our `index/2` test, except `show/2` requires a user id, 
 When we run our test tells us we need a `show/2` action.
 
 ```elixir
-defmodule HelloPhoenix.UserController do
-  use HelloPhoenix, :controller
+defmodule Hello.UserController do
+  use Hello, :controller
 
-  alias HelloPhoenix{Accounts.User, Repo}
+  alias Hello{Accounts.User, Repo}
 
   def index(conn, _params) do
     users = Repo.all(User)
@@ -279,15 +308,15 @@ You'll notice we only handle the case where we successfully find a user. When we
 Running the test tells us we need a `render/2` function that can pattern match on `"show.json"`:
 
 ```elixir
-defmodule HelloPhoenix.UserView do
-  use HelloPhoenix, :view
+defmodule Hello.UserView do
+  use Hello, :view
 
   def render("index.json", %{users: users}) do
-    %{data: render_many(users, HelloPhoenix.UserView, "user.json")}
+    %{data: render_many(users, Hello.UserView, "user.json")}
   end
 
   def render("show.json", %{user: user}) do
-    %{data: render_one(user, HelloPhoenix.UserView, "user.json")}
+    %{data: render_one(user, Hello.UserView, "user.json")}
   end
 
   def render("user.json", %{user: user}) do
