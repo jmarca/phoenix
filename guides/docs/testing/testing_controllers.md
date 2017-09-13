@@ -308,36 +308,41 @@ checking, properly handling missing values, and so on.
 
 And with that, our test passes when we run it.
 
+### Time for the Show
+
 We'll also cover the `show/2` action here so we can see how to handle an error case.
 
 Our show tests currently look like this:
 
 ```elixir
   describe "show/2" do
-    test "Responds with a newly created user if the user is found"
+    test "Responds with user info if the user is found"
     test "Responds with a message indicating user not found"
   end
 ```
 
-Run this test only by running the following command: (if your show tests don't start on line 32, change the line number accordingly)
+Run this test only by running the following command: (if your show tests don't start on line 41, change the line number accordingly)
 
 ```console
-$ mix test test/hello_web/controllers/user_controller_test.exs:32
+$ mix test test/hello_web/controllers/user_controller_test.exs:41
 ```
 
 Our first `show/2` test result is, as expected, not implemented.
 Let's build a test around what we think a successful `show/2` should look like.
 
 ```elixir
-test "Responds with a newly created user if the user is found" do
-  user = User.changeset(%User{}, %{name: "John", email: "john@example.com"})
-  |> Repo.insert!
+# test/hello_phoenix_web/controllers/user_controller_test.exs line 41 (or so)
 
-  response = build_conn()
-  |> get(user_path(build_conn(), :show, user.id))
+test "Responds with user info if the user is found", %{conn: conn, user1: user} do
+  response = conn
+  |> get(user_path(conn, :show, user.id))
   |> json_response(200)
 
-  expected = %{ "data" => %{ "name" => "John", "email" => "john@example.com" } }
+  expected = %{
+    "data" =>
+    %{ "email" => user.email, "name" => user.name }
+
+  }
 
   assert response == expected
 end
@@ -345,7 +350,7 @@ end
 
 This is very similar to our `index/2` test, except `show/2` requires a user id, and our data is a single JSON object instead of an array.
 
-When we run our test tells us we need a `show/2` action.
+When we run our test tells us we need a `HelloWeb.UserController.show/2` action.
 
 ```elixir
 defmodule Hello.UserController do
