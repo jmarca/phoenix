@@ -5,40 +5,80 @@ We're going to take a look at how we might test drive a controller which has end
 Phoenix has a generator for creating a JSON resource which looks like this:
 
 ```console
-mix phoenix.gen.json Stuff Thing things some_attr:string another_attr:string
+$ mix phx.gen.json  AllTheThings Thing things some_attr:string another_attr:string
 ```
 
-Stuff is the context module name, Thing is the schema module name, things is the table name, and some_attr and another_attr are database columns on table things of type string. Don't run this command, we're going to explore test driving out a similar result to what a generator would give us.
+In this command, AllTheThings is the Context; Thing is the Schema;
+things is the plural name of the schema (which is used as the table
+name).  Then `some_attr` and `another_attr` are the database columns on
+table `things` of type string.
+
+However, *don't* actually run this command.  Instead, we're going to
+explore test driving out a similar result to what a generator would
+give us.
 
 ### Set up
-Let's create a `User` schema. Since schema creation is not in scope of this guide, we will use the generator.  If you aren't familiar, read [this section of the Mix guide](mix_tasks.html#phoenix-specific-mix-tasks).
+
+First create a blank project by running
 
 ```console
-$ mix phx.gen.schema Accounts.User users name:string email:string
-* creating lib/hello/accounts/user.ex
-* creating priv/repo/migrations/20170908031352_create_users.exs
+$ mix phx.new hello_phoenix -y
+```
+
+Change into the newly-created `hello_phoenix` directory, configure
+your database in `config/dev.exs` and then run
+
+```console
+$ mix ecto.create
+```
+
+If you have any questions about this process, now is a good time to
+jump over to the [Up and Running Guide](up_and_running.html).
+
+
+Let's create an `Accounts` context for this example.
+Since context creation is not in scope of this guide, we will use the
+generator.  If you aren't familiar, read [this section of the Mix
+guide](mix_tasks.html#phoenix-specific-mix-tasks) and [the Contexts
+Guide](contexts.html#content).
+
+```console
+$ mix phx.gen.context Accounts User users name:string email:string:unique password:string
+
+* creating lib/hello_phoenix/accounts/user.ex
+* creating priv/repo/migrations/20170913142842_create_users.exs
+* creating lib/hello_phoenix/accounts/accounts.ex
+* injecting lib/hello_phoenix/accounts/accounts.ex
+* creating test/hello_phoenix/accounts/accounts_test.exs
+* injecting test/hello_phoenix/accounts/accounts_test.exs
 
 Remember to update your repository by running migrations:
 
     $ mix ecto.migrate
 ```
 
-Now run migrations:
+Ordinarily we would spend time tweaking the generated migration file
+(`priv/repo/migrations/<datetime>_create_users.exs`) to add things
+like non-null constraints and so on, but we don't care about that for
+this example.  Just run the migration:
 
 ```console
 $ mix ecto.migrate
-[info] == Running Hello.Repo.Migrations.CreateUsers.change/0 forward
+[info] == Running HelloPhoenix.Repo.Migrations.CreateUsers.change/0 forward
 [info] create table users
+[info] create index users_email_index
 [info] == Migrated in 0.0s
 ```
 
 ### Test driving
 
-What we are going for is a controller with the standard CRUD actions. We'll start with our test since we're TDDing this. Create a `user_controller_test.exs` file in `test/hello_web/controllers`
+What we are going for is a controller with the standard CRUD actions. We'll start with our test since we're TDDing this. Create a `user_controller_test.exs` file in `test/hello_phoenix_web/controllers`
 
 ```elixir
-defmodule HelloWeb.UserControllerTest do
-  use HelloWeb.ConnCase, async: true
+# test/hello_phoenix_web/controllers/user_controller_test.exs
+
+defmodule HelloPhoenixWeb.UserControllerTest do
+  use HelloPhoenixWeb.ConnCase
 
 end
 ```
@@ -46,8 +86,10 @@ end
 There are many ways to approach TDD. Here, we will think about each action we want to perform, and handle the "happy path" where things go as planned, and the error case where something goes wrong, if applicable.
 
 ```elixir
-defmodule HelloWeb.UserControllerTest do
-  use HelloWeb.ConnCase, async: true
+# test/hello_phoenix_web/controllers/user_controller_test.exs
+
+defmodule HelloPhoenixWeb.UserControllerTest do
+  use HelloPhoenixWeb.ConnCase
 
   test "index/2 responds with all Users"
 
@@ -78,7 +120,7 @@ Create, show and update have more typical ways to fail because they need a way t
 Let's run the test:
 
 ```console
-$ mix test test/controllers/user_controller_test.exs
+$ mix test test/hello_phoenix_web/controllers/user_controller_test.exs
 ```
 
 We get 8 failures that say "Not implemented" which is good. Our tests don't have blocks yet.
@@ -86,10 +128,10 @@ We get 8 failures that say "Not implemented" which is good. Our tests don't have
 Let's add our first test. We'll start with `index/2`.
 
 ```elixir
-defmodule HelloWeb.UserControllerTest do
-  use HelloWeb.ConnCase, async: true
+defmodule HelloPhoenix.UserControllerTest do
+  use HelloPhoenix.ConnCase, async: true
 
-  alias Hello.{Repo, Accounts.User}
+  alias HelloPhoenix{Repo, Accounts.User}
 
   test "index/2 responds with all Users" do
     users = [ User.changeset(%User{}, %{name: "John", email: "john@example.com"}),
@@ -120,8 +162,8 @@ When we run the test we get an error that we have no `user_path` function.
 In our router, we'll add a resource for `User` in our API pipe:
 
 ```elixir
-defmodule HelloWeb.Router do
-  use HelloWeb, :router
+defmodule HelloPhoenix.Router do
+  use HelloPhoenix, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -133,7 +175,7 @@ defmodule HelloWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-    resources "/users", HelloWeb.UserController
+    resources "/users", HelloPhoenix.UserController
   end
 
   ...
@@ -142,10 +184,10 @@ defmodule HelloWeb.Router do
 We should get a new error now. Running the test informs us we don't have a `UserController`. Let's add it, along with the `index/2` action we're testing. Our test description has us returning all users:
 
 ```elixir
-defmodule HelloWeb.UserController do
-  use HelloWeb, :controller
+defmodule HelloPhoenix.UserController do
+  use HelloPhoenix, :controller
 
-  alias Hello.{Accounts.User, Repo}
+  alias HelloPhoenix{Accounts.User, Repo}
 
   def index(conn, _params) do
     users = Repo.all(User)
@@ -158,11 +200,11 @@ end
 When we run the test again, our failing test tells us we have no view. Let's add it. Our test specifies a JSON format with a top key of `"data"`, containing an array of users with attributes `"name"` and `"email"`.
 
 ```elixir
-defmodule HelloWeb.UserView do
-  use HelloWeb, :view
+defmodule HelloPhoenix.UserView do
+  use HelloPhoenix, :view
 
   def render("index.json", %{users: users}) do
-    %{data: render_many(users, HelloWeb.UserView, "user.json")}
+    %{data: render_many(users, HelloPhoenix.UserView, "user.json")}
   end
 
   def render("user.json", %{user: user}) do
@@ -188,7 +230,7 @@ Our show tests currently look like this:
 Run this test only by running the following command: (if your show tests don't start on line 32, change the line number accordingly)
 
 ```console
-$ mix test test/hello_web/controllers/user_controller_test.exs:32
+$ mix test test/hello_phoenix_web/controllers/user_controller_test.exs:32
 ```
 
 Our first `show/2` test result is, as expected, not implemented.
@@ -214,10 +256,10 @@ This is very similar to our `index/2` test, except `show/2` requires a user id, 
 When we run our test tells us we need a `show/2` action.
 
 ```elixir
-defmodule HelloWeb.UserController do
-  use HelloWeb, :controller
+defmodule HelloPhoenix.UserController do
+  use HelloPhoenix, :controller
 
-  alias Hello.{Accounts.User, Repo}
+  alias HelloPhoenix{Accounts.User, Repo}
 
   def index(conn, _params) do
     users = Repo.all(User)
@@ -237,15 +279,15 @@ You'll notice we only handle the case where we successfully find a user. When we
 Running the test tells us we need a `render/2` function that can pattern match on `"show.json"`:
 
 ```elixir
-defmodule HelloWeb.UserView do
-  use HelloWeb, :view
+defmodule HelloPhoenix.UserView do
+  use HelloPhoenix, :view
 
   def render("index.json", %{users: users}) do
-    %{data: render_many(users, HelloWeb.UserView, "user.json")}
+    %{data: render_many(users, HelloPhoenix.UserView, "user.json")}
   end
 
   def render("show.json", %{user: user}) do
-    %{data: render_one(user, HelloWeb.UserView, "user.json")}
+    %{data: render_one(user, HelloPhoenix.UserView, "user.json")}
   end
 
   def render("user.json", %{user: user}) do
