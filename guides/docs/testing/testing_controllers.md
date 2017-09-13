@@ -414,19 +414,35 @@ Notice the "show.json" rendering path uses `render_one/4` instead of
 
 When we run the test again, it passes.
 
+### No Show
+
 The last item we'll cover is the case where we don't find a user in `show/2`.
 
 Try this one on your own and see what you come up with. One possible solution will be given below.
 
-Walking through our TDD steps, we add a test that supplies a non existent user id to `user_path` which returns a 404 status and an error message:
+Walking through our TDD steps, we add a test that supplies a
+non-existent user id to `user_path` which returns a 404 status and an
+error message.  One interesting problem here is how we might define a
+"non-existent" id.  We could just pick a large integer, but who's to
+say some future test won't generate thousands of test users and break
+our test?  Instead of going bigger, we can also go the other way.
+Database ids tend to start at 1 and increase forever.  Negative
+numbers are perfectly valid integers, and yet never used for database
+ids.  So we'll pick -1 as our "unobtainable" user id, which *should*
+always fail.
+
 
 ```elixir
-test "Responds with a message indicating user not found" do
-  response = build_conn()
-  |> get(user_path(build_conn(), :show, 300))
+# test/hello_web/controllers/user_controller_test.exs line 55 (or so)
+
+test "Responds with a message indicating user not found", %{conn:  conn} do
+  response = conn
+  |> get(user_path(conn, :show, -1 ))
   |> json_response(404)
 
-  expected = %{ "error" => "User not found." }
+  expected = %{
+    "errors" => "Resource not found"
+  }
 
   assert response == expected
 end
@@ -434,24 +450,70 @@ end
 
 We want a HTTP code of 404 to notify the requester that this resource was not found, as well as an accompanying error message.
 
-Our controller action:
+Our controller action now needs to handle the error thrown by Ecto:
 
 ```elixir
-def show(conn, %{"id" => id}) do
-  case Repo.get(User, id) do
-    nil -> conn |> put_status(404) |> render("error.json")
-    user -> render conn, "show.json", user: user
+# lib/hello_web/controllers/user_controller.ex, line 10 or so
+
+  def show(conn, %{"id" => id}) do
+    try do
+      user = Accounts.get_user!(id)
+      render conn, "show.json", data: user
+    catch
+      :error, message ->
+        conn
+        |> put_status(:not_found)
+        |> render( HelloWeb.ErrorView, "400.json", reason: message )
+    end
+  end
+```
+
+In the `catch` block, there are two important things going on.
+First we use the
+[`put_status/2`](https://hexdocs.pm/plug/Plug.Conn.html#put_status/2)
+function from `Plug.Conn` to set the desired error status.  The complete list of allowed codes can be found in the
+[Plug.Conn.Status
+documentation](https://hexdocs.pm/plug/Plug.Conn.Status.html), where
+we can see that `:not_found` corresponds to our desired "404" status.
+
+Second, we've redirected the view to the `ErrorView` module.  If you
+open that file up, you'll see a few rendering helpers for HTML,
+output, but none for JSON.  We need to add a render function for
+"400.json" as follows:
+
+```
+# lib/hello_web/views/error_view.ex
+
+defmodule HelloWeb.ErrorView do
+  use HelloWeb, :view
+
+  def render("404.html", _assigns) do
+    "Page not found"
+  end
+
+  def render("500.html", _assigns) do
+    "Internal server error"
+  end
+
+  def render("400.json", %{reason: reason}) do
+    message = case reason do
+                %Ecto.NoResultsError{} -> "Resource not found"
+                _ -> "I'm afraid I can't do that, Dave"
+              end
+    %{errors: message}
+  end
+
+  # In case no render clause matches or no
+  # template is found, let's render it as 500
+  def template_not_found(_template, assigns) do
+    render "500.html", assigns
   end
 end
 ```
 
-And our view:
-
-```elixir
-def render("error.json", _assigns) do
-  %{error: "User not found."}
-end
-```
+In the "400.json" render function, we only expect the `%Ecto.NoResultsError{}`
+so far, so we only set that message.  As other errors crop up in our
+TDD development, we can add additional error messages.
 
 With those implemented, our tests pass.
 
