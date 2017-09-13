@@ -369,8 +369,8 @@ defmodule HelloWeb.UserController do
   end
 
   def show(conn, %{"id" => id}) do
-      user = Accounts.get_user!(id)
-      render conn, "show.json", data: user
+    user = Accounts.get_user!(id)
+    render conn, "show.json", data: user
   end
 
 end
