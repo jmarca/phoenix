@@ -357,25 +357,29 @@ only grabbing `user1:` from the context, and mapping it to `user`.
 When we run our test tells us we need a `HelloWeb.UserController.show/2` action.
 
 ```elixir
-defmodule Hello.UserController do
-  use Hello, :controller
+# lib/hello_web/controllers/user_controller.ex
 
-  alias Hello{Accounts.User, Repo}
+defmodule HelloWeb.UserController do
+  use HelloWeb, :controller
+  alias Hello.Accounts
 
   def index(conn, _params) do
-    users = Repo.all(User)
-    render conn, "index.json", users: users
+    users = Accounts.list_users()
+    render(conn, "index.json", data: users)
   end
 
   def show(conn, %{"id" => id}) do
-    case Repo.get(User, id) do
-      user -> render conn, "show.json", user: user
-    end
+      user = Accounts.get_user!(id)
+      render conn, "show.json", data: user
   end
+
 end
 ```
 
-You'll notice we only handle the case where we successfully find a user. When we TDD we only want to write enough code to make the test pass. We'll add more code when we get to the error handling test for `show/2`.
+You might notice the exclamation point in the `get_user!/1` function.
+This convention means that this function will throw an error if the
+requested user is not found.  You'll also notice that we aren't
+properly handling the possibility of a thrown error here. When we TDD we only want to write enough code to make the test pass. We'll add more code when we get to the error handling test for `show/2`.
 
 Running the test tells us we need a `render/2` function that can pattern match on `"show.json"`:
 
